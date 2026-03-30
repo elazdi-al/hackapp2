@@ -13,6 +13,7 @@ import {
   Rows,
   CaretDown,
 } from "phosphor-react"
+import { Select } from "@base-ui/react/select"
 
 interface Attachment {
   id: string
@@ -92,7 +93,6 @@ export function AIPrompt() {
   const [prompt, setPrompt] = useState("")
   const [selectedModel, setSelectedModel] = useState<ModelName>("GPT 5.0")
   const [attachments, setAttachments] = useState<Attachment[]>(mockAttachments)
-  const [showModelDropdown, setShowModelDropdown] = useState(false)
 
   const removeAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id))
@@ -143,50 +143,48 @@ export function AIPrompt() {
 
           <div className="flex-1" />
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowModelDropdown(!showModelDropdown)}
-              className="flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3 pr-2.5 text-sm font-medium text-foreground hover:bg-accent transition-colors"
+          <Select.Root
+            value={selectedModel}
+            onValueChange={(value) => setSelectedModel(value as ModelName)}
+          >
+            <Select.Trigger
+              className="flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3 pr-2.5 text-sm font-medium text-foreground hover:bg-accent transition-colors outline-none"
             >
               {selectedModelData && (
                 <img
                   src={modelIcons[selectedModelData.id]}
                   alt=""
-                  className="h-4 w-4 opacity-70 dark:invert dark:opacity-80"
+                  className="h-4 w-4 model-icon"
                 />
               )}
-              <span>{selectedModel}</span>
+              <Select.Value />
               <CaretDown size={12} weight="bold" className="text-muted-foreground" />
-            </button>
-
-            {showModelDropdown && (
-              <div className="absolute top-11 right-0 z-10 min-w-[130px] rounded-xl border border-border bg-card p-1 shadow-lg">
-                {models.map((model) => (
-                  <button
-                    type="button"
-                    key={model.name}
-                    onClick={() => {
-                      setSelectedModel(model.name)
-                      setShowModelDropdown(false)
-                    }}
-                    className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
-                      selectedModel === model.name
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                    }`}
-                  >
-                    <img
-                      src={modelIcons[model.id]}
-                      alt=""
-                      className="h-4 w-4 opacity-70 dark:invert dark:opacity-80"
-                    />
-                    <span>{model.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner
+                sideOffset={8}
+                align="end"
+                className="z-10"
+              >
+                <Select.Popup className="min-w-[130px] rounded-xl border border-border bg-card p-1 shadow-lg outline-none">
+                  {models.map((model) => (
+                    <Select.Item
+                      key={model.name}
+                      value={model.name}
+                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none cursor-default transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-foreground data-[selected]:bg-accent data-[selected]:text-foreground text-muted-foreground"
+                    >
+                      <img
+                        src={modelIcons[model.id]}
+                        alt=""
+                        className="h-4 w-4 model-icon"
+                      />
+                      <Select.ItemText>{model.name}</Select.ItemText>
+                    </Select.Item>
+                  ))}
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
         </div>
       </div>
 

@@ -198,4 +198,10 @@
     @apply font-sans antialiased;
     text-rendering: optimizeLegibility;
   }
+  .model-icon {
+    filter: grayscale(1) brightness(0.25);
+  }
+  .dark .model-icon {
+    filter: grayscale(1) invert(1) brightness(0.85);
+  }
 }
