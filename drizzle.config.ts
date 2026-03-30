@@ -6,8 +6,8 @@ loadEnvConfig(process.cwd());
 export default defineConfig({
   out: "./drizzle",
   schema: "./db/schema.ts",
-  dialect: "sqlite",
+  dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "./sqlite.db",
+    url: process.env.DATABASE_URL!,
   },
 });

@@ -1,10 +1,9 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 
 import { env } from "../lib/env";
 import * as schema from "./schema";
 
-const sqlite = new Database(env.DATABASE_URL);
+const sql = neon(env.DATABASE_URL);
 
-export const db = drizzle(sqlite, { schema });
-export { sqlite };
+export const db = drizzle(sql, { schema });
