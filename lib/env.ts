@@ -9,6 +9,7 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
+  EXA_API_KEY: z.string().min(1),
 });
 
 export const env = envSchema.parse({
@@ -18,4 +19,5 @@ export const env = envSchema.parse({
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  EXA_API_KEY: process.env.EXA_API_KEY,
 });

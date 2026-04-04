@@ -12,6 +12,9 @@ import {
   FolderOpen,
   Rows,
   CaretDown,
+  MagnifyingGlass,
+  ArrowSquareOut,
+  SpinnerGap,
 } from "phosphor-react"
 import { Select } from "@base-ui/react/select"
 
@@ -89,13 +92,45 @@ const attachmentConfig = {
   },
 }
 
+interface SearchResult {
+  title: string
+  url: string
+  publishedDate?: string | null
+  author?: string | null
+  highlights?: string[]
+}
+
 export function AIPrompt() {
   const [prompt, setPrompt] = useState("")
   const [selectedModel, setSelectedModel] = useState<ModelName>("GPT 5.0")
   const [attachments, setAttachments] = useState<Attachment[]>(mockAttachments)
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const removeAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id))
+  }
+
+  const handleSearch = async () => {
+    if (!prompt.trim()) return
+    setLoading(true)
+    setError(null)
+    setResults([])
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: prompt }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Search failed")
+      setResults(data.results ?? [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const selectedModelData = models.find((m) => m.name === selectedModel)
@@ -139,6 +174,20 @@ export function AIPrompt() {
             aria-label="Select tool"
           >
             <Cursor size={18} weight="bold" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSearch}
+            disabled={loading || !prompt.trim()}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Search with Exa"
+          >
+            {loading ? (
+              <SpinnerGap size={18} weight="bold" className="animate-spin" />
+            ) : (
+              <MagnifyingGlass size={18} weight="bold" />
+            )}
           </button>
 
           <div className="flex-1" />
@@ -187,6 +236,59 @@ export function AIPrompt() {
           </Select.Root>
         </div>
       </div>
+
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-3 text-sm text-red-500"
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {results.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-3 flex flex-col gap-2"
+          >
+            {results.map((r) => (
+              <a
+                key={r.url}
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group rounded-xl border border-border bg-card p-3 hover:bg-accent transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground leading-snug line-clamp-1">
+                    {r.title}
+                  </p>
+                  <ArrowSquareOut
+                    size={14}
+                    weight="bold"
+                    className="text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                </div>
+                {r.highlights?.[0] && (
+                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                    {r.highlights[0]}
+                  </p>
+                )}
+                <p className="mt-1.5 text-[11px] text-muted-foreground/60 truncate">
+                  {r.url}
+                </p>
+              </a>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className={`flex gap-2.5 mt-3 overflow-x-auto pt-2 pb-2 min-h-[104px] ${attachments.length === 0 ? 'invisible' : ''}`}>
         <AnimatePresence mode="popLayout">
