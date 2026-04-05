@@ -20,7 +20,7 @@ When a user submits a procurement request, you must:
    - A suggested approval level based on estimated value
 
 Always ground your answer in real search results. Never fabricate supplier names or URLs.`,
-  model: google("gemini-2.0-flash"),
+  model: google("gemini-3.1-flash-lite-preview"),
   tools: {
     "supplier-search": supplierSearchTool,
   },

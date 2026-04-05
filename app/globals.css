@@ -7,6 +7,7 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
+    --font-instrument-serif: var(--font-instrument-serif);
 
     /* Purple palette */
     --color-purple-25: #faf8ff;
