@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import {
   ArrowSquareOut,
@@ -8,7 +8,8 @@ import {
   CaretDown,
   Buildings,
   WarningCircle,
-  Sparkle,
+  Brain,
+  BookOpen,
   X,
   Globe,
 } from "phosphor-react"
@@ -42,7 +43,7 @@ function SourcesPanel({
 
   return (
     <motion.aside
-      initial={{ opacity: 0, x: 40 }}
+      initial={false}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
       style={{ position: "fixed", top: position.top, left: position.left }}
@@ -111,7 +112,7 @@ function SourceChips({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-muted-foreground">
-        <Sparkle size={14} weight="duotone" className="text-primary" />
+        <BookOpen size={14} weight="duotone" className="text-primary" />
         <span className="text-sm font-semibold text-foreground">Sources</span>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
@@ -126,7 +127,7 @@ function SourceChips({
               href={p.url}
               target="_blank"
               rel="noopener noreferrer"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={false}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.05 }}
               className="flex flex-col gap-1 rounded-xl border border-border bg-card px-3 py-2.5 hover:bg-accent transition-colors min-w-[140px] max-w-[200px]"
@@ -146,7 +147,7 @@ function SourceChips({
           <motion.button
             type="button"
             onClick={onShowAll}
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: visible.length * 0.05 }}
             className="flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted px-4 py-2.5 min-h-[64px] hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
@@ -158,7 +159,7 @@ function SourceChips({
         <motion.button
           type="button"
           onClick={onShowAll}
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={false}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: (visible.length + 1) * 0.05 }}
           className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border px-4 py-2.5 min-h-[64px] hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
@@ -180,25 +181,41 @@ function SourceChips({
 
 // ── Streaming markdown reasoning ───────────────────────────────────────────────
 
-function ReasoningSection({ markdown, isStreaming }: { markdown: string; isStreaming: boolean }) {
+function ReasoningSection({
+  markdown,
+  isStreaming,
+}: {
+  markdown: string
+  isStreaming: boolean
+}) {
+  const summary = markdown
+  const hasSummary = summary.trim().length > 0
+  const fallback = isStreaming
+    ? "Building your procurement summary..."
+    : "Summary unavailable for this run."
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-3"
     >
       <div className="flex items-center gap-2">
-        <Sparkle size={14} weight="duotone" className="text-primary" />
-        <span className="text-sm font-semibold text-foreground">Procora</span>
+        <Brain size={14} weight="duotone" className="text-primary" />
+        <span className="text-sm font-semibold text-foreground">Reasoning</span>
       </div>
-      <div className="text-base text-foreground/85 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
-        <Streamdown
-          mode={isStreaming ? "streaming" : "static"}
-          parseIncompleteMarkdown
-        >
-          {markdown}
-        </Streamdown>
+      <div className="text-sm text-foreground/85 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+        {hasSummary ? (
+          <Streamdown
+            mode={isStreaming ? "streaming" : "static"}
+            parseIncompleteMarkdown
+          >
+            {summary}
+          </Streamdown>
+        ) : (
+          <p className="text-sm text-muted-foreground">{fallback}</p>
+        )}
       </div>
     </motion.div>
   )
@@ -231,7 +248,7 @@ function ProviderCard({ provider, rank, pending }: { provider: Partial<Provider>
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: "easeOut" }}
       className="rounded-2xl border border-border bg-card overflow-hidden"
@@ -362,6 +379,11 @@ export function SearchResults({
     transport,
     messages: initialMessages,
   })
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   const hydrateChat = useChatStore((s) => s.hydrate)
   const setConversation = useChatStore((s) => s.setConversation)
@@ -393,6 +415,11 @@ export function SearchResults({
   }, [chatId, query, initialMessages.length, sendMessage])
 
   const { providers, markdown } = useMemo(() => extractFromAssistant(messages), [messages])
+  const completeProviders = useMemo(
+    () =>
+      providers.filter((p) => !!(p.name && p.url && typeof p.score === "number" && p.reasoning)) as Provider[],
+    [providers]
+  )
 
   // ── sources panel positioning ────────────────────────────────────────────────
   const [panelOpen, setPanelOpen] = useState(false)
@@ -434,6 +461,14 @@ export function SearchResults({
   const isStreaming = status === "streaming" || status === "submitted"
   const nothingYet = providers.length === 0 && !markdown
 
+  if (!mounted) {
+    return (
+      <div className="max-w-3xl mx-auto flex flex-col gap-8">
+        {heading}
+      </div>
+    )
+  }
+
   if (nothingYet && isStreaming) {
     return (
       <div className="max-w-3xl mx-auto flex flex-col gap-8">
@@ -470,15 +505,19 @@ export function SearchResults({
 
         {providers.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 6 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
             <SourceChips
-              providers={providers.filter((p) => !!(p.name && p.url && typeof p.score === "number" && p.reasoning)) as Provider[]}
+              providers={completeProviders}
               onShowAll={() => setPanelOpen((v) => !v)}
             />
           </motion.div>
+        )}
+
+        {(providers.length > 0 || markdown) && (
+          <ReasoningSection markdown={markdown} isStreaming={isStreaming} />
         )}
 
         {providers.length > 0 && (
@@ -488,12 +527,10 @@ export function SearchResults({
             ))}
           </div>
         )}
-
-        {markdown && <ReasoningSection markdown={markdown} isStreaming={isStreaming} />}
       </motion.div>
 
       <SourcesPanel
-        providers={providers.filter((p) => !!(p.name && p.url && typeof p.score === "number" && p.reasoning)) as Provider[]}
+        providers={completeProviders}
         visible={panelOpen}
         onClose={() => setPanelOpen(false)}
         position={panelPos}

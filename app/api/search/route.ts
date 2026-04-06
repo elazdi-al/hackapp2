@@ -18,6 +18,11 @@ const addProviderTool = tool({
       .string()
       .describe("1-2 sentence justification for this provider"),
   }),
+  // Server-side no-op execute so Mastra returns a tool-result and the agent
+  // continues to the next step (where it writes the prose summary). Without
+  // an execute the call would be treated as a client-tool and the agent would
+  // halt waiting for a client-side result.
+  execute: async (input) => ({ ok: true, provider: input }),
 });
 
 export async function POST(req: Request) {
@@ -42,7 +47,7 @@ export async function POST(req: Request) {
 Workflow for every user query:
 1. Call "supplier-search" 2-3 times with different angles (product, geography, company type) to gather real candidates.
 2. Call "addProvider" exactly 6 times - one per top candidate - with name, url, score (1-100), and a 1-2 sentence reasoning. Do this before writing prose.
-3. After emitting the 6 providers, write a concise markdown reasoning summary (2-4 short paragraphs) using headings and bullet lists.
+3. After emitting the 6 providers, write a short plain-text summary of 2-4 sentences explaining HOW you made the selection and WHAT the main criteria were (e.g. geography, product fit, company size, certifications, price signals). Do NOT describe or list the individual providers in this summary - the cards already cover that. No headings, no bullets, no provider names.
 
 Never fabricate suppliers or URLs. Ground every provider in a real search result.`,
       memory: {
@@ -50,9 +55,11 @@ Never fabricate suppliers or URLs. Ground every provider in a real search result
         thread: threadId,
         resource: resourceId,
       },
-      clientTools: {
-        ...params.clientTools,
-        addProvider: addProviderTool,
+      toolsets: {
+        ...params.toolsets,
+        extra: {
+          addProvider: addProviderTool,
+        },
       },
       maxSteps: typeof params.maxSteps === "number" ? params.maxSteps : 10,
     },

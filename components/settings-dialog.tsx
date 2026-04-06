@@ -3,7 +3,6 @@
 import * as React from "react"
 import { Dialog } from "@base-ui/react/dialog"
 import { AnimatePresence, motion } from "motion/react"
-import { useTheme } from "next-themes"
 import {
   X,
   Sun,
@@ -17,6 +16,7 @@ import {
 } from "phosphor-react"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
+import { useTheme } from "@/components/theme-provider"
 
 type Section = "account" | "appearance"
 
