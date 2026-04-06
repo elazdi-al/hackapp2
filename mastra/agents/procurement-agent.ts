@@ -1,5 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 import { google } from "@ai-sdk/google";
+import { Memory } from "@mastra/memory";
+
+import { mastraPostgresStore } from "@/mastra/storage";
 import { supplierSearchTool } from "../tools/supplier-search";
 
 export const procurementAgent = new Agent({
@@ -21,6 +24,9 @@ When a user submits a procurement request, you must:
 
 Always ground your answer in real search results. Never fabricate supplier names or URLs.`,
   model: google("gemini-3.1-flash-lite-preview"),
+  memory: new Memory({
+    storage: mastraPostgresStore,
+  }),
   tools: {
     "supplier-search": supplierSearchTool,
   },

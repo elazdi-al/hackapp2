@@ -1,49 +1,64 @@
+import { handleChatStream } from "@mastra/ai-sdk";
+import { createUIMessageStreamResponse, tool } from "ai";
+import { headers } from "next/headers";
+import { z } from "zod";
+
 import { mastra } from "@/mastra";
-import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { getChatResourceId } from "@/lib/chat-resource";
+
+const addProviderTool = tool({
+  description:
+    "Emit a recommended provider card to display to the user. Call this once per provider you want to surface (exactly 3 in total). Call these before the final prose summary so cards appear first.",
+  inputSchema: z.object({
+    name: z.string().describe("Company name"),
+    url: z.string().describe("Company website URL"),
+    score: z.number().min(1).max(100).describe("Relevance score 1-100"),
+    reasoning: z
+      .string()
+      .describe("1-2 sentence justification for this provider"),
+  }),
+});
 
 export async function POST(req: Request) {
-  const { query } = await req.json();
+  const params = await req.json();
+  const threadId = typeof params?.id === "string" ? params.id : "";
 
-  if (!query || typeof query !== "string") {
-    return NextResponse.json({ error: "Missing query" }, { status: 400 });
+  if (!threadId || !Array.isArray(params?.messages)) {
+    return new Response("Missing id or messages", { status: 400 });
   }
 
-  const agent = mastra.getAgentById("procurement-agent");
+  const session = await auth.api.getSession({ headers: await headers() });
+  const resourceId = getChatResourceId(session?.user?.id);
 
-  const result = await agent.generate(
-    `You are given a procurement query. Your job is to:
-1. Search for real suppliers using the supplier-search tool (make 2–3 searches with different angles: by product type, by geography, by company size/type).
-2. Analyze the results and write a global reasoning paragraph (2–4 sentences) explaining what criteria you prioritized and why, given the query context.
-3. Select the top 3 provider candidates from your findings.
+  const stream = await handleChatStream({
+    mastra,
+    agentId: "procurement-agent",
+    version: "v6",
+    params: {
+      ...params,
+      instructions: `You are ProcureTrace, an AI procurement decision assistant.
 
-Return ONLY a valid JSON object. No explanation, no markdown, no extra text.
+Workflow for every user query:
+1. Call "supplier-search" 2-3 times with different angles (product, geography, company type) to gather real candidates.
+2. Call "addProvider" exactly 3 times - one per top candidate - with name, url, score (1-100), and a 1-2 sentence reasoning. Do this before writing prose.
+3. After emitting the 3 providers, write a concise markdown reasoning summary (2-4 short paragraphs) using headings and bullet lists.
 
-The JSON must have:
-- "summary": a 2–4 sentence paragraph explaining the key criteria considered and the overall procurement landscape for this query (string)
-- "providers": array of exactly 3 objects, each with:
-  - "name": company name (string)
-  - "url": company website URL (string)
-  - "score": relevance score 1–100 (number)
-  - "reasoning": 1–2 sentence justification for this specific provider (string)
+Never fabricate suppliers or URLs. Ground every provider in a real search result.`,
+      memory: {
+        ...params.memory,
+        thread: threadId,
+        resource: resourceId,
+      },
+      clientTools: {
+        ...params.clientTools,
+        addProvider: addProviderTool,
+      },
+      maxSteps: typeof params.maxSteps === "number" ? params.maxSteps : 10,
+    },
+  });
 
-Procurement query: ${query}
-
-Respond with ONLY the JSON object.`,
-    { maxSteps: 6 }
-  );
-
-  const text = result.text.trim();
-
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    return NextResponse.json({ error: "Failed to parse agent response" }, { status: 500 });
-  }
-
-  const data = JSON.parse(jsonMatch[0]);
-
-  if (data.providers) {
-    data.providers.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
-  }
-
-  return NextResponse.json(data);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createUIMessageStreamResponse({ stream: stream as any });
 }
+

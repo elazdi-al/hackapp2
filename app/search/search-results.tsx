@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import {
   ArrowSquareOut,
@@ -12,17 +12,17 @@ import {
   X,
   Globe,
 } from "phosphor-react"
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport, type UIMessage } from "ai"
+import { Streamdown } from "streamdown"
+
+import { useChatStore } from "@/lib/stores/chat-store"
 
 interface Provider {
   name: string
   url: string
   score: number
   reasoning: string
-}
-
-interface SearchData {
-  summary: string
-  providers: Provider[]
 }
 
 // ── Sources panel ──────────────────────────────────────────────────────────────
@@ -48,7 +48,6 @@ function SourcesPanel({
       style={{ position: "fixed", top: position.top, left: position.left }}
       className="w-72 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-border bg-card shadow-lg z-50"
     >
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Buildings size={14} weight="duotone" className="text-primary" />
@@ -66,7 +65,6 @@ function SourcesPanel({
         </button>
       </div>
 
-      {/* Provider list */}
       <div className="divide-y divide-border">
         {providers.map((p, i) => {
           const hostname = (() => {
@@ -180,21 +178,28 @@ function SourceChips({
   )
 }
 
-// ── Main analysis ──────────────────────────────────────────────────────────────
+// ── Streaming markdown reasoning ───────────────────────────────────────────────
 
-function AnalysisSection({ summary }: { summary: string }) {
+function ReasoningSection({ markdown, isStreaming }: { markdown: string; isStreaming: boolean }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1, duration: 0.3 }}
+      transition={{ duration: 0.3 }}
       className="flex flex-col gap-3"
     >
       <div className="flex items-center gap-2">
         <Sparkle size={14} weight="duotone" className="text-primary" />
         <span className="text-sm font-semibold text-foreground">ProcureTrace</span>
       </div>
-      <p className="text-base text-foreground/80 leading-relaxed">{summary}</p>
+      <div className="text-base text-foreground/85 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+        <Streamdown
+          mode={isStreaming ? "streaming" : "static"}
+          parseIncompleteMarkdown
+        >
+          {markdown}
+        </Streamdown>
+      </div>
     </motion.div>
   )
 }
@@ -216,19 +221,19 @@ function ScoreBadge({ score }: { score: number }) {
   )
 }
 
-function ProviderCard({ provider, rank }: { provider: Provider; rank: number }) {
+function ProviderCard({ provider, rank, pending }: { provider: Partial<Provider>; rank: number; pending?: boolean }) {
   const [expanded, setExpanded] = useState(false)
 
   const hostname = (() => {
-    try { return new URL(provider.url).hostname.replace(/^www\./, "") }
-    catch { return provider.url }
+    try { return provider.url ? new URL(provider.url).hostname.replace(/^www\./, "") : "" }
+    catch { return provider.url ?? "" }
   })()
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: rank * 0.08 + 0.2, duration: 0.28, ease: "easeOut" }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
       className="rounded-2xl border border-border bg-card overflow-hidden"
     >
       <div className="flex items-center gap-3 px-4 py-3.5">
@@ -236,23 +241,33 @@ function ProviderCard({ provider, rank }: { provider: Provider; rank: number }) 
           {rank + 1}
         </span>
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <Buildings size={15} weight="duotone" />
+          {pending ? (
+            <SpinnerGap size={14} weight="bold" className="animate-spin" />
+          ) : (
+            <Buildings size={15} weight="duotone" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{provider.name}</p>
-          <a
-            href={provider.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Globe size={10} />
-            {hostname}
-            <ArrowSquareOut size={9} weight="bold" />
-          </a>
+          <p className="text-sm font-semibold text-foreground truncate">
+            {provider.name ?? "Loading provider…"}
+          </p>
+          {provider.url ? (
+            <a
+              href={provider.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Globe size={10} />
+              {hostname}
+              <ArrowSquareOut size={9} weight="bold" />
+            </a>
+          ) : (
+            <span className="text-xs text-muted-foreground">…</span>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <ScoreBadge score={provider.score} />
+          {typeof provider.score === "number" && <ScoreBadge score={provider.score} />}
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
@@ -270,7 +285,7 @@ function ProviderCard({ provider, rank }: { provider: Provider; rank: number }) 
       </div>
 
       <AnimatePresence initial={false}>
-        {expanded && (
+        {expanded && provider.reasoning && (
           <motion.div
             key="r"
             initial={{ height: 0, opacity: 0 }}
@@ -291,12 +306,95 @@ function ProviderCard({ provider, rank }: { provider: Provider; rank: number }) 
   )
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+type ToolPart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>
+
+function extractFromAssistant(messages: UIMessage[]) {
+  const assistant = [...messages].reverse().find((m) => m.role === "assistant")
+  if (!assistant) return { providers: [] as Array<Partial<Provider> & { pending: boolean }>, markdown: "" }
+
+  const providers: Array<Partial<Provider> & { pending: boolean }> = []
+  let markdown = ""
+
+  for (const part of assistant.parts) {
+    if (part.type === "text") {
+      markdown += part.text
+      continue
+    }
+    if (part.type === "tool-addProvider") {
+      const tp = part as ToolPart & { input?: Partial<Provider>; state: string }
+      providers.push({
+        ...(tp.input ?? {}),
+        pending: tp.state !== "output-available" && tp.state !== "input-available",
+      })
+    }
+  }
+
+  return { providers, markdown }
+}
+
 // ── Root export ────────────────────────────────────────────────────────────────
 
-export function SearchResults({ query }: { query: string }) {
-  const [data, setData] = useState<SearchData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function SearchResults({
+  chatId,
+  query,
+  initialMessages,
+}: {
+  chatId: string
+  query: string
+  initialMessages: UIMessage[]
+}) {
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/search",
+        // Send only what the server needs: the chat id + the message list.
+        prepareSendMessagesRequest: ({ id, messages }) => ({
+          body: { id, messages },
+        }),
+      }),
+    []
+  )
+
+  const { messages, sendMessage, status, error } = useChat({
+    id: chatId,
+    transport,
+    messages: initialMessages,
+  })
+
+  const hydrateChat = useChatStore((s) => s.hydrate)
+  const setConversation = useChatStore((s) => s.setConversation)
+  const setVisibleMessages = useChatStore((s) => s.setVisibleMessages)
+  const setStoreStatus = useChatStore((s) => s.setStatus)
+
+  useEffect(() => {
+    hydrateChat({
+      conversation: { chatId, query },
+      messages: initialMessages,
+      status: "ready",
+    })
+  }, [chatId, query, initialMessages, hydrateChat])
+
+  useEffect(() => {
+    setConversation({ chatId, query })
+    setVisibleMessages(messages)
+    setStoreStatus(status)
+  }, [chatId, query, messages, status, setConversation, setStoreStatus, setVisibleMessages])
+
+  // Auto-send the query only on a fresh chat (no persisted messages).
+  const sentRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!query || !chatId) return
+    if (initialMessages.length > 0) return
+    if (sentRef.current === chatId) return
+    sentRef.current = chatId
+    sendMessage({ text: query })
+  }, [chatId, query, initialMessages.length, sendMessage])
+
+  const { providers, markdown } = useMemo(() => extractFromAssistant(messages), [messages])
+
+  // ── sources panel positioning ────────────────────────────────────────────────
   const [panelOpen, setPanelOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const [panelPos, setPanelPos] = useState<{ left: number; top: number } | null>(null)
@@ -304,13 +402,11 @@ export function SearchResults({ query }: { query: string }) {
 
   useEffect(() => {
     if (!panelOpen || !contentRef.current) {
-      setPanelPos(null)
       return
     }
     const update = () => {
       const el = contentRef.current
       if (!el) return
-      // Use offsetLeft/Width to ignore the motion transform, so left stays stable on scroll
       const untransformedRight = el.offsetLeft + el.offsetWidth
       const top = el.getBoundingClientRect().top
       setPanelPos({ left: untransformedRight + 24 - SHIFT, top: Math.max(96, top) })
@@ -322,25 +418,7 @@ export function SearchResults({ query }: { query: string }) {
       window.removeEventListener("resize", update)
       window.removeEventListener("scroll", update)
     }
-  }, [panelOpen, data])
-
-  useEffect(() => {
-    if (!query) return
-    setLoading(true)
-    setError(null)
-    setData(null)
-    setPanelOpen(false)
-
-    fetch("/api/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    })
-      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
-      .then((d) => { setData(d) })
-      .catch(() => setError("Something went wrong. Please try again."))
-      .finally(() => setLoading(false))
-  }, [query])
+  }, [panelOpen, providers.length])
 
   if (!query) return null
 
@@ -353,7 +431,10 @@ export function SearchResults({ query }: { query: string }) {
     </h1>
   )
 
-  if (loading) {
+  const isStreaming = status === "streaming" || status === "submitted"
+  const nothingYet = providers.length === 0 && !markdown
+
+  if (nothingYet && isStreaming) {
     return (
       <div className="max-w-3xl mx-auto flex flex-col gap-8">
         {heading}
@@ -371,13 +452,11 @@ export function SearchResults({ query }: { query: string }) {
         {heading}
         <div className="flex flex-col items-center justify-center gap-3 py-24">
           <WarningCircle size={26} weight="duotone" className="text-destructive" />
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-sm text-muted-foreground">Something went wrong. Please try again.</p>
         </div>
       </div>
     )
   }
-
-  if (!data) return null
 
   return (
     <>
@@ -389,32 +468,32 @@ export function SearchResults({ query }: { query: string }) {
       >
         {heading}
 
-        {/* Sources chips */}
-        {data.providers?.length > 0 && (
+        {providers.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <SourceChips providers={data.providers} onShowAll={() => setPanelOpen((v) => !v)} />
+            <SourceChips
+              providers={providers.filter((p) => !!(p.name && p.url && typeof p.score === "number" && p.reasoning)) as Provider[]}
+              onShowAll={() => setPanelOpen((v) => !v)}
+            />
           </motion.div>
         )}
 
-        {/* Analysis */}
-        {data.summary && <AnalysisSection summary={data.summary} />}
-
-        {/* Provider cards */}
-        {data.providers?.length > 0 && (
+        {providers.length > 0 && (
           <div className="flex flex-col gap-2">
-            {data.providers.map((p, i) => (
-              <ProviderCard key={p.url || i} provider={p} rank={i} />
+            {providers.map((p, i) => (
+              <ProviderCard key={`${p.url ?? "p"}-${i}`} provider={p} rank={i} pending={p.pending} />
             ))}
           </div>
         )}
+
+        {markdown && <ReasoningSection markdown={markdown} isStreaming={isStreaming} />}
       </motion.div>
 
       <SourcesPanel
-        providers={data.providers ?? []}
+        providers={providers.filter((p) => !!(p.name && p.url && typeof p.score === "number" && p.reasoning)) as Provider[]}
         visible={panelOpen}
         onClose={() => setPanelOpen(false)}
         position={panelPos}

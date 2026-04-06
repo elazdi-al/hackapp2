@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "streamdown/styles.css";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Header } from "@/components/header";

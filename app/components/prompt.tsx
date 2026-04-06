@@ -29,8 +29,10 @@ export function AIPrompt() {
   const router = useRouter()
 
   const handleSubmit = () => {
-    if (!input.trim()) return
-    router.push(`/search?q=${encodeURIComponent(input.trim())}`)
+    const trimmed = input.trim()
+    if (!trimmed) return
+    const id = crypto.randomUUID()
+    router.push(`/search?id=${id}&q=${encodeURIComponent(trimmed)}`)
   }
 
   const selectedModelData = models.find((m) => m.name === selectedModel)
