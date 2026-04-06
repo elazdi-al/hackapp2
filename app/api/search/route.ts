@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     version: "v6",
     params: {
       ...params,
-      instructions: `You are ProcureTrace, an AI procurement decision assistant.
+      instructions: `You are Procora, an AI procurement decision assistant.
 
 Workflow for every user query:
 1. Call "supplier-search" 2-3 times with different angles (product, geography, company type) to gather real candidates.

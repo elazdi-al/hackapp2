@@ -190,7 +190,7 @@ function ReasoningSection({ markdown, isStreaming }: { markdown: string; isStrea
     >
       <div className="flex items-center gap-2">
         <Sparkle size={14} weight="duotone" className="text-primary" />
-        <span className="text-sm font-semibold text-foreground">ProcureTrace</span>
+        <span className="text-sm font-semibold text-foreground">Procora</span>
       </div>
       <div className="text-base text-foreground/85 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
         <Streamdown

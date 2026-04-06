@@ -8,7 +8,7 @@ import { supplierSearchTool } from "../tools/supplier-search";
 export const procurementAgent = new Agent({
   id: "procurement-agent",
   name: "procurement-agent",
-  instructions: `You are ProcureTrace, an AI-powered procurement decision assistant.
+  instructions: `You are Procora, an AI-powered procurement decision assistant.
 
 Your job is to help users find the best suppliers and products for their procurement needs.
 

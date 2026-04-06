@@ -1,10 +1,10 @@
-**ProcureTrace**
+**Procora**
 
 _AI-Powered Procurement Decision Platform_
 
 Product Overview | 2025
 
-ProcureTrace converts unstructured purchasing requests into structured, policy-compliant decisions - in seconds. It combines AI, rule-based systems, and real-time analytics to make procurement faster, more consistent, and fully auditable.
+Procora converts unstructured purchasing requests into structured, policy-compliant decisions - in seconds. It combines AI, rule-based systems, and real-time analytics to make procurement faster, more consistent, and fully auditable.
 
 ## **1\. The Problem**
 
@@ -19,7 +19,7 @@ Procurement in most organizations remains manual, fragmented, and difficult to g
 
 ## **2\. The Solution**
 
-ProcureTrace introduces a new approach: automated, explainable, and policy-aware procurement decision-making. The platform:
+Procora introduces a new approach: automated, explainable, and policy-aware procurement decision-making. The platform:
 
 - Interprets natural-language procurement requests
 - Extracts structured data: category, quantity, budget, timeline, geography
@@ -40,9 +40,9 @@ ProcureTrace introduces a new approach: automated, explainable, and policy-aware
 | **Approval Routing**   | Requests are automatically routed to the right approver based on value, risk level, and compliance requirements.               |
 | **Audit Trail**        | Every action, rule evaluation, and decision is permanently logged for full traceability and regulatory compliance.             |
 
-## **4\. Why ProcureTrace**
+## **4\. Why Procora**
 
-ProcureTrace is not a traditional procurement tool or ERP extension. It is a decision intelligence layer that sits on top of existing systems. Key differentiators:
+Procora is not a traditional procurement tool or ERP extension. It is a decision intelligence layer that sits on top of existing systems. Key differentiators:
 
 - End-to-end decision automation - not just data management
 - Explainability by design - justifications are built in, not added as an afterthought
@@ -52,7 +52,7 @@ ProcureTrace is not a traditional procurement tool or ERP extension. It is a dec
 
 ## **5\. Market Opportunity**
 
-Procurement typically represents more than 50% of total costs in large organizations - yet decision-making remains largely manual. ProcureTrace addresses a clear gap at the intersection of three high-growth categories:
+Procurement typically represents more than 50% of total costs in large organizations - yet decision-making remains largely manual. Procora addresses a clear gap at the intersection of three high-growth categories:
 
 - Procurement Technology
 - Enterprise AI
@@ -60,7 +60,7 @@ Procurement typically represents more than 50% of total costs in large organizat
 
 ## **6\. Vision & Roadmap**
 
-ProcureTrace aims to become the decision engine for procurement. The next phase focuses on:
+Procora aims to become the decision engine for procurement. The next phase focuses on:
 
 - Building a persistent, scalable system architecture
 - Enabling multi-user and multi-team workflows
