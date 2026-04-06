@@ -240,11 +240,16 @@ function ScoreBadge({ score }: { score: number }) {
 
 function ProviderCard({ provider, rank, pending }: { provider: Partial<Provider>; rank: number; pending?: boolean }) {
   const [expanded, setExpanded] = useState(false)
+  const [faviconFailed, setFaviconFailed] = useState(false)
 
   const hostname = (() => {
     try { return provider.url ? new URL(provider.url).hostname.replace(/^www\./, "") : "" }
     catch { return provider.url ?? "" }
   })()
+
+  const faviconUrl = hostname
+    ? `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`
+    : null
 
   return (
     <motion.div
@@ -257,9 +262,19 @@ function ProviderCard({ provider, rank, pending }: { provider: Partial<Provider>
         <span className="text-xs font-semibold text-muted-foreground w-4 shrink-0 tabular-nums">
           {rank + 1}
         </span>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground overflow-hidden">
           {pending ? (
             <SpinnerGap size={14} weight="bold" className="animate-spin" />
+          ) : faviconUrl && !faviconFailed ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={faviconUrl}
+              alt=""
+              width={20}
+              height={20}
+              className="h-5 w-5 object-contain"
+              onError={() => setFaviconFailed(true)}
+            />
           ) : (
             <Buildings size={15} weight="duotone" />
           )}
