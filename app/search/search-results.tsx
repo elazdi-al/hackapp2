@@ -45,7 +45,7 @@ function SourcesPanel({
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      style={{ position: "absolute", top: position.top, left: position.left }}
+      style={{ position: "fixed", top: position.top, left: position.left }}
       className="w-72 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-border bg-card shadow-lg z-50"
     >
       {/* Header */}
@@ -308,12 +308,20 @@ export function SearchResults({ query }: { query: string }) {
       return
     }
     const update = () => {
-      const rect = contentRef.current?.getBoundingClientRect()
-      if (rect) setPanelPos({ left: rect.right + 24 - SHIFT, top: rect.top + window.scrollY })
+      const el = contentRef.current
+      if (!el) return
+      // Use offsetLeft/Width to ignore the motion transform, so left stays stable on scroll
+      const untransformedRight = el.offsetLeft + el.offsetWidth
+      const top = el.getBoundingClientRect().top
+      setPanelPos({ left: untransformedRight + 24 - SHIFT, top: Math.max(96, top) })
     }
     update()
     window.addEventListener("resize", update)
-    return () => window.removeEventListener("resize", update)
+    window.addEventListener("scroll", update, { passive: true })
+    return () => {
+      window.removeEventListener("resize", update)
+      window.removeEventListener("scroll", update)
+    }
   }, [panelOpen, data])
 
   useEffect(() => {
