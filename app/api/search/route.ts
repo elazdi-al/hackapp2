@@ -9,7 +9,7 @@ import { getChatResourceId } from "@/lib/chat-resource";
 
 const addProviderTool = tool({
   description:
-    "Emit a recommended provider card to display to the user. Call this once per provider you want to surface (exactly 3 in total). Call these before the final prose summary so cards appear first.",
+    "Emit a recommended provider card to display to the user. Call this once per provider you want to surface (exactly 6 in total). Call these before the final prose summary so cards appear first.",
   inputSchema: z.object({
     name: z.string().describe("Company name"),
     url: z.string().describe("Company website URL"),
@@ -41,8 +41,8 @@ export async function POST(req: Request) {
 
 Workflow for every user query:
 1. Call "supplier-search" 2-3 times with different angles (product, geography, company type) to gather real candidates.
-2. Call "addProvider" exactly 3 times - one per top candidate - with name, url, score (1-100), and a 1-2 sentence reasoning. Do this before writing prose.
-3. After emitting the 3 providers, write a concise markdown reasoning summary (2-4 short paragraphs) using headings and bullet lists.
+2. Call "addProvider" exactly 6 times - one per top candidate - with name, url, score (1-100), and a 1-2 sentence reasoning. Do this before writing prose.
+3. After emitting the 6 providers, write a concise markdown reasoning summary (2-4 short paragraphs) using headings and bullet lists.
 
 Never fabricate suppliers or URLs. Ground every provider in a real search result.`,
       memory: {
@@ -61,4 +61,3 @@ Never fabricate suppliers or URLs. Ground every provider in a real search result
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createUIMessageStreamResponse({ stream: stream as any });
 }
-
