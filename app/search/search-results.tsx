@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { motion } from "motion/react"
+import { motion, AnimatePresence } from "motion/react"
 import {
   SpinnerGap,
   Buildings,
@@ -27,19 +27,32 @@ function SourcesPanel({
   visible,
   onClose,
   position,
+  onExitComplete,
 }: {
   providers: Provider[]
   visible: boolean
   onClose: () => void
   position?: { left: number; top: number } | null
+  onExitComplete?: () => void
 }) {
-  if (!visible || !position) return null
-
   return (
+    <AnimatePresence onExitComplete={onExitComplete}>
+      {visible && position && (
     <motion.aside
-      initial={false}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
+      key="sources-panel"
+      initial={{ opacity: 0, x: -16, scale: 0.98 }}
+      animate={{
+        opacity: 1,
+        x: 0,
+        scale: 1,
+        transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+      }}
+      exit={{
+        opacity: 0,
+        x: -16,
+        scale: 0.98,
+        transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+      }}
       style={{ position: "fixed", top: position.top, left: position.left }}
       className="w-72 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-border bg-card shadow-lg z-50"
     >
@@ -88,6 +101,8 @@ function SourcesPanel({
         })}
       </div>
     </motion.aside>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -315,6 +330,9 @@ export function SearchResults({
 
   // ── sources panel positioning ────────────────────────────────────────────────
   const [panelOpen, setPanelOpen] = useState(false)
+  // Separate "visible" flag so the panel only renders AFTER the content has
+  // finished shifting left, and is hidden BEFORE the content shifts back.
+  const [panelVisible, setPanelVisible] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const [panelPos, setPanelPos] = useState<{ left: number; top: number } | null>(null)
   const SHIFT = 170
@@ -393,6 +411,10 @@ export function SearchResults({
         ref={contentRef}
         animate={{ x: panelOpen ? -SHIFT : 0 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
+        onAnimationComplete={() => {
+          // Reveal the side panel only once the shift-left settles.
+          if (panelOpen) setPanelVisible(true)
+        }}
         className="max-w-3xl mx-auto flex flex-col gap-8"
       >
         {heading}
@@ -405,7 +427,15 @@ export function SearchResults({
           >
             <SourceChips
               providers={completeProviders}
-              onShowAll={() => setPanelOpen((v) => !v)}
+              onShowAll={() => {
+                if (panelVisible) {
+                  // Closing: play the panel exit; unshift happens onExitComplete.
+                  setPanelVisible(false)
+                } else {
+                  // Opening: shift first; panelVisible flips on animation complete.
+                  setPanelOpen(true)
+                }
+              }}
             />
           </motion.div>
         )}
@@ -421,8 +451,15 @@ export function SearchResults({
 
       <SourcesPanel
         providers={completeProviders}
-        visible={panelOpen}
-        onClose={() => setPanelOpen(false)}
+        visible={panelVisible}
+        onClose={() => {
+          // Trigger the panel's exit animation; the unshift fires onExitComplete.
+          setPanelVisible(false)
+        }}
+        onExitComplete={() => {
+          // Once the panel has fully eased out, slide the content back.
+          setPanelOpen(false)
+        }}
         position={panelPos}
       />
     </>
