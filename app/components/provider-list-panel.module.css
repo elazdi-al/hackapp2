@@ -1,0 +1,349 @@
+.panel {
+  --ui-text: var(--foreground);
+  --ui-muted: color-mix(in oklab, var(--foreground), transparent 52%);
+  --surface-top: color-mix(in oklab, var(--card), white 6%);
+  --surface-bottom: color-mix(in oklab, var(--card), black 4%);
+  --edge-hi: rgb(255 255 255 / 0.62);
+  --edge-lo: rgb(0 0 0 / 0.05);
+  --shadow-key: rgb(0 0 0 / 0.1);
+  --shadow-soft: rgb(0 0 0 / 0.06);
+  --track-bg: color-mix(in oklab, var(--muted), var(--card) 30%);
+  --fill: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--foreground), var(--card) 58%),
+    color-mix(in oklab, var(--foreground), var(--card) 46%)
+  );
+  --chip-bg: color-mix(in oklab, var(--muted), var(--card) 26%);
+  --chip-text: color-mix(in oklab, var(--foreground), transparent 34%);
+
+  --score-good: #1f8f59;
+  --score-warn: #ad7a2d;
+  --score-risk: #b44a4a;
+  --score-good-bg: color-mix(in oklab, #1f8f59, var(--card) 88%);
+  --score-warn-bg: color-mix(in oklab, #ad7a2d, var(--card) 86%);
+  --score-risk-bg: color-mix(in oklab, #b44a4a, var(--card) 88%);
+
+  width: 100%;
+  color: var(--ui-text);
+}
+
+:global(.dark) .panel {
+  --surface-top: color-mix(in oklab, var(--card), white 5%);
+  --surface-bottom: color-mix(in oklab, var(--card), black 7%);
+  --edge-hi: rgb(255 255 255 / 0.09);
+  --edge-lo: rgb(0 0 0 / 0.36);
+  --shadow-key: rgb(0 0 0 / 0.44);
+  --shadow-soft: rgb(0 0 0 / 0.24);
+  --track-bg: color-mix(in oklab, var(--muted), black 14%);
+
+  --score-good-bg: color-mix(in oklab, #1f8f59, var(--card) 78%);
+  --score-warn-bg: color-mix(in oklab, #ad7a2d, var(--card) 76%);
+  --score-risk-bg: color-mix(in oklab, #b44a4a, var(--card) 78%);
+}
+
+.listWrap {
+  width: 100%;
+  display: grid;
+  gap: 0.82rem;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--surface-top), var(--surface-bottom));
+  box-shadow:
+    0 1px 0 0 var(--edge-hi) inset,
+    0 -1px 0 0 var(--edge-lo) inset,
+    0 8px 16px -15px var(--shadow-key);
+  transition: transform 220ms ease, box-shadow 240ms ease, background 220ms ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--edge-hi), white 12%) inset,
+    0 -1px 0 0 var(--edge-lo) inset,
+    0 12px 20px -15px var(--shadow-key);
+}
+
+.card:active,
+.card[data-selected="true"] {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 0 0 var(--edge-hi) inset,
+    0 -1px 0 0 var(--edge-lo) inset,
+    0 8px 16px -15px var(--shadow-key),
+    0 8px 12px -12px var(--shadow-soft) inset;
+}
+
+.mainRow {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  grid-template-columns: 34px 42px minmax(0, 1fr) auto 28px;
+  align-items: center;
+  gap: 0.62rem;
+  padding: 0.72rem 0.95rem 0.32rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mainRow:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--ring), transparent 6%),
+    0 0 0 4px color-mix(in oklab, var(--background), white 14%);
+  border-radius: 12px;
+}
+
+.rank {
+  justify-self: center;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: color-mix(in oklab, var(--foreground), transparent 44%);
+}
+
+.logoContainer {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--muted), var(--card) 28%);
+  box-shadow:
+    0 1px 0 0 var(--edge-hi) inset,
+    0 -1px 0 0 var(--edge-lo) inset;
+}
+
+.logoRound {
+  border-radius: 999px;
+}
+
+.logoSquare {
+  border-radius: 10px;
+}
+
+.logoText {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: color-mix(in oklab, var(--foreground), transparent 28%);
+}
+
+.providerText {
+  min-width: 0;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.providerName {
+  font-size: 0.88rem;
+  font-weight: 630;
+  letter-spacing: 0.003em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.providerDomain {
+  font-size: 0.7rem;
+  color: var(--ui-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scorePill {
+  min-width: 64px;
+  border-radius: 999px;
+  padding: 0.24rem 0.5rem;
+  display: inline-grid;
+  justify-items: center;
+  line-height: 1;
+  gap: 0.14rem;
+  box-shadow:
+    0 1px 0 0 var(--edge-hi) inset,
+    0 -1px 0 0 var(--edge-lo) inset;
+}
+
+.scoreValue {
+  font-size: 0.8rem;
+  font-weight: 690;
+  letter-spacing: 0.01em;
+}
+
+.scoreLabel {
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+.positive {
+  color: var(--score-good);
+  background: var(--score-good-bg);
+}
+
+.warning {
+  color: var(--score-warn);
+  background: var(--score-warn-bg);
+}
+
+.critical {
+  color: var(--score-risk);
+  background: var(--score-risk-bg);
+}
+
+.chevronWrap {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--muted), var(--card) 35%);
+  box-shadow:
+    0 1px 0 0 var(--edge-hi) inset,
+    0 -1px 0 0 var(--edge-lo) inset;
+}
+
+.chevron {
+  width: 12px;
+  height: 12px;
+  color: color-mix(in oklab, var(--foreground), transparent 40%);
+  transition: transform 200ms ease, color 200ms ease;
+}
+
+.card[data-expanded="true"] .chevron {
+  transform: rotate(90deg);
+}
+
+.secondaryArea {
+  padding: 0 0.95rem 0.56rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.48rem 0.72rem;
+}
+
+.metricRow {
+  display: grid;
+  gap: 0.24rem;
+}
+
+.metricHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 0.64rem;
+  line-height: 1;
+  color: var(--ui-muted);
+}
+
+.metricHeader span:last-child {
+  font-weight: 640;
+  color: color-mix(in oklab, var(--foreground), transparent 30%);
+}
+
+.metricTrack {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--track-bg);
+  box-shadow:
+    0 1px 0 0 var(--edge-hi) inset,
+    0 -1px 0 0 var(--edge-lo) inset;
+}
+
+.metricFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--fill);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--edge-hi), transparent 25%) inset,
+    0 -1px 0 0 color-mix(in oklab, var(--edge-lo), black 18%) inset;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.tagChip {
+  border-radius: 999px;
+  padding: 0.18rem 0.44rem;
+  font-size: 0.54rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--chip-text);
+  background: var(--chip-bg);
+  box-shadow:
+    0 1px 0 0 var(--edge-hi) inset,
+    0 -1px 0 0 var(--edge-lo) inset;
+}
+
+.expandedPanel {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.1rem;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height 250ms ease, opacity 200ms ease, transform 220ms ease;
+}
+
+.expandedPanel p {
+  font-size: 0.7rem;
+  line-height: 1.3;
+  color: var(--ui-muted);
+}
+
+.card[data-expanded="true"] .expandedPanel {
+  max-height: 96px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 860px) {
+  .mainRow {
+    grid-template-columns: 28px 34px minmax(0, 1fr) auto 22px;
+    gap: 0.5rem;
+    padding: 0.64rem 0.8rem 0.28rem;
+  }
+
+  .secondaryArea {
+    padding: 0 0.8rem 0.48rem;
+  }
+
+  .metricGrid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .providerName {
+    font-size: 0.86rem;
+  }
+
+  .providerDomain {
+    font-size: 0.69rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .chevron,
+  .expandedPanel {
+    transition: none;
+  }
+}

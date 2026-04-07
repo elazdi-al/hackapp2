@@ -1,11 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion } from "motion/react"
 import {
-  ArrowSquareOut,
   SpinnerGap,
-  CaretDown,
   Buildings,
   WarningCircle,
   Brain,
@@ -17,14 +15,10 @@ import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport, type UIMessage } from "ai"
 import { Streamdown } from "streamdown"
 
+import { ProviderListPanel, type RankedProvider } from "@/app/components/provider-list-panel"
 import { useChatStore } from "@/lib/stores/chat-store"
 
-interface Provider {
-  name: string
-  url: string
-  score: number
-  reasoning: string
-}
+type Provider = RankedProvider
 
 // ── Sources panel ──────────────────────────────────────────────────────────────
 
@@ -221,123 +215,6 @@ function ReasoningSection({
   )
 }
 
-// ── Provider card ──────────────────────────────────────────────────────────────
-
-function ScoreBadge({ score }: { score: number }) {
-  const color =
-    score >= 80
-      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-      : score >= 60
-      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-      : "bg-red-500/10 text-red-500 dark:text-red-400"
-
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${color}`}>
-      {score}
-    </span>
-  )
-}
-
-function ProviderCard({ provider, rank, pending }: { provider: Partial<Provider>; rank: number; pending?: boolean }) {
-  const [expanded, setExpanded] = useState(false)
-  const [faviconFailed, setFaviconFailed] = useState(false)
-
-  const hostname = (() => {
-    try { return provider.url ? new URL(provider.url).hostname.replace(/^www\./, "") : "" }
-    catch { return provider.url ?? "" }
-  })()
-
-  const faviconUrl = hostname
-    ? `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`
-    : null
-
-  return (
-    <motion.div
-      initial={false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: "easeOut" }}
-      className="rounded-2xl border border-border bg-card overflow-hidden"
-    >
-      <div className="flex items-center gap-3 px-4 py-3.5">
-        <span className="text-xs font-semibold text-muted-foreground w-4 shrink-0 tabular-nums">
-          {rank + 1}
-        </span>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground overflow-hidden">
-          {pending ? (
-            <SpinnerGap size={14} weight="bold" className="animate-spin" />
-          ) : faviconUrl && !faviconFailed ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={faviconUrl}
-              alt=""
-              width={20}
-              height={20}
-              className="h-5 w-5 object-contain"
-              onError={() => setFaviconFailed(true)}
-            />
-          ) : (
-            <Buildings size={15} weight="duotone" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">
-            {provider.name ?? "Loading provider…"}
-          </p>
-          {provider.url ? (
-            <a
-              href={provider.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Globe size={10} />
-              {hostname}
-              <ArrowSquareOut size={9} weight="bold" />
-            </a>
-          ) : (
-            <span className="text-xs text-muted-foreground">…</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {typeof provider.score === "number" && <ScoreBadge score={provider.score} />}
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          >
-            <motion.span
-              animate={{ rotate: expanded ? 180 : 0 }}
-              transition={{ duration: 0.18 }}
-              className="flex"
-            >
-              <CaretDown size={13} weight="bold" />
-            </motion.span>
-          </button>
-        </div>
-      </div>
-
-      <AnimatePresence initial={false}>
-        {expanded && provider.reasoning && (
-          <motion.div
-            key="r"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4 border-t border-border">
-              <p className="text-sm text-muted-foreground leading-relaxed pt-3">
-                {provider.reasoning}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  )
-}
-
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 type ToolPart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>
@@ -475,6 +352,8 @@ export function SearchResults({
 
   const isStreaming = status === "streaming" || status === "submitted"
   const nothingYet = providers.length === 0 && !markdown
+  const requestStarted = initialMessages.length > 0 || messages.length > 0 || isStreaming
+  const searchComplete = requestStarted && status === "ready"
 
   if (!mounted) {
     return (
@@ -535,12 +414,8 @@ export function SearchResults({
           <ReasoningSection markdown={markdown} isStreaming={isStreaming} />
         )}
 
-        {providers.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {providers.map((p, i) => (
-              <ProviderCard key={`${p.url ?? "p"}-${i}`} provider={p} rank={i} pending={p.pending} />
-            ))}
-          </div>
+        {searchComplete && completeProviders.length > 0 && (
+          <ProviderListPanel providers={completeProviders} />
         )}
       </motion.div>
 

@@ -5,6 +5,7 @@ import { Inter, Instrument_Serif } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Header } from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AgentationDev } from "@/app/components/agentation-dev";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 const instrumentSerif = Instrument_Serif({ subsets: ['latin'], weight: '400', variable: '--font-instrument-serif' });
@@ -20,11 +21,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable, instrumentSerif.variable)} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={cn("font-sans", inter.variable, instrumentSerif.variable)}
+      suppressHydrationWarning
+    >
       <body>
         <ThemeProvider>
           <Header />
           {children}
+          <AgentationDev />
         </ThemeProvider>
       </body>
     </html>
